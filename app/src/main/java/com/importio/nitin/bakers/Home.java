@@ -6,6 +6,7 @@ import android.support.v7.app.AppCompatActivity;
 import android.util.Log;
 
 import com.importio.nitin.bakers.Database.AppDatabase;
+import com.importio.nitin.bakers.Database.IngredientEntry;
 import com.importio.nitin.bakers.Database.ReceipeEntry;
 
 import org.json.JSONArray;
@@ -36,8 +37,14 @@ public class Home extends AppCompatActivity {
                         Log.d("Nitin", r.getName());
                     }
                 }
+                Log.d("Nitin", "**********PRINTING INGREDIENTS************");
+                List<IngredientEntry> ingredientEntries = mDb.IngredientDao().getAllIngredients();
+                for (IngredientEntry i : ingredientEntries) {
+                    Log.d("Nitin", i.toString());
+                }
             }
         });
+
     }
 
     private void getReceipeData() {
@@ -52,6 +59,28 @@ public class Home extends AppCompatActivity {
                 mDb.ReceipeDao().insertReceipe(receipe);
             }
         });
+    }
+
+    private void addIngredientsToDatabase(JSONArray ingredients, int receipeId) {
+        for (int i = 0; i < ingredients.length(); i++) {
+            try {
+                JSONObject ingredient = ingredients.getJSONObject(i);
+                int quantity = ingredient.getInt("quantity");
+                String measure = ingredient.getString("measure");
+                String name = ingredient.getString("ingredient");
+
+                final IngredientEntry ingredientEntry = new IngredientEntry(receipeId, quantity, measure, name);
+                AppExecutors.getInstance().getDiskIO().execute(new Runnable() {
+                    @Override
+                    public void run() {
+                        mDb.IngredientDao().insertIngredient(ingredientEntry);
+                    }
+                });
+            } catch (JSONException e) {
+                e.printStackTrace();
+            }
+
+        }
     }
 
     private class GetReceipesAsyncTask extends AsyncTask<Void, Void, String> {
@@ -74,6 +103,10 @@ public class Home extends AppCompatActivity {
 
                         ReceipeEntry receipeEntry = new ReceipeEntry(id, name, servings);
                         addReceipeToDatabase(receipeEntry);
+
+                        JSONArray ingredients = receipe.getJSONArray("ingredients");
+                        addIngredientsToDatabase(ingredients, id);
+
                     }
                 } catch (JSONException e) {
                     e.printStackTrace();

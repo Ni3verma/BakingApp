@@ -9,7 +9,7 @@ import android.arch.persistence.room.RoomDatabase;
 import android.content.Context;
 import android.support.annotation.NonNull;
 
-@Database(entities = {ReceipeEntry.class/*,IngredientEntry.class,StepEntry.class*/}, version = 1, exportSchema = false)
+@Database(entities = {ReceipeEntry.class, IngredientEntry.class/*,StepEntry.class*/}, version = 1, exportSchema = false)
 public abstract class AppDatabase extends RoomDatabase {
 
     public static final Object LOCK = new Object();
@@ -27,7 +27,8 @@ public abstract class AppDatabase extends RoomDatabase {
     }
 
     public abstract ReceipeDao ReceipeDao();
-//    public abstract IngredientDao IngredientDao();
+
+    public abstract IngredientDao IngredientDao();
 //    public abstract StepDao StepDao();
 
 
