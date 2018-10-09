@@ -8,6 +8,7 @@ import android.util.Log;
 import com.importio.nitin.bakers.Database.AppDatabase;
 import com.importio.nitin.bakers.Database.IngredientEntry;
 import com.importio.nitin.bakers.Database.ReceipeEntry;
+import com.importio.nitin.bakers.Database.StepEntry;
 
 import org.json.JSONArray;
 import org.json.JSONException;
@@ -33,15 +34,13 @@ public class Home extends AppCompatActivity {
                     getReceipeData();
                 } else {   //we already have data in db,so simply get data from db and show it
                     Log.d("Nitin", receipeList.size() + " receipes found in db");
-                    for (ReceipeEntry r : receipeList) {
-                        Log.d("Nitin", r.getName());
-                    }
+
                 }
-                Log.d("Nitin", "**********PRINTING INGREDIENTS************");
-                List<IngredientEntry> ingredientEntries = mDb.IngredientDao().getAllIngredients();
-                for (IngredientEntry i : ingredientEntries) {
-                    Log.d("Nitin", i.toString());
+                List<StepEntry> steps = mDb.StepDao().getAllSteps();
+                for (StepEntry s : steps) {
+                    Log.d("Nitin", s.toString());
                 }
+
             }
         });
 
@@ -83,6 +82,28 @@ public class Home extends AppCompatActivity {
         }
     }
 
+    private void addStepsToDatabase(JSONArray steps, int receipeId) {
+        try {
+            for (int i = 0; i < steps.length(); i++) {
+                JSONObject step = steps.getJSONObject(i);
+                String shortDesc = step.getString("shortDescription");
+                String desc = step.getString("description");
+                String videoURL = step.getString("videoURL");
+                String thumbnailURL = step.getString("thumbnailURL");
+
+                final StepEntry stepEntry = new StepEntry(receipeId, shortDesc, desc, videoURL, thumbnailURL);
+                AppExecutors.getInstance().getDiskIO().execute(new Runnable() {
+                    @Override
+                    public void run() {
+                        mDb.StepDao().insertStep(stepEntry);
+                    }
+                });
+            }
+        } catch (JSONException e) {
+            e.printStackTrace();
+        }
+    }
+
     private class GetReceipesAsyncTask extends AsyncTask<Void, Void, String> {
 
         @Override
@@ -106,6 +127,9 @@ public class Home extends AppCompatActivity {
 
                         JSONArray ingredients = receipe.getJSONArray("ingredients");
                         addIngredientsToDatabase(ingredients, id);
+
+                        JSONArray steps = receipe.getJSONArray("steps");
+                        addStepsToDatabase(steps, id);
 
                     }
                 } catch (JSONException e) {
