@@ -1,9 +1,8 @@
-<ListView xmlns:android="http://schemas.android.com/apk/res/android"
-    android:id="@+id/receipe_lv"
+<android.support.v7.widget.RecyclerView xmlns:android="http://schemas.android.com/apk/res/android"
+    android:id="@+id/receipe_rv"
     xmlns:tools="http://schemas.android.com/tools"
     android:layout_height="match_parent"
     android:layout_width="match_parent"
     android:layout_margin="8dp"
-    android:divider="@color/cardview_light_background"
-    android:dividerHeight="8dp"
+    android:scrollbars="vertical"
     tools:listitem="@layout/list_home_item" />

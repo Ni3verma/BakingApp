@@ -3,10 +3,10 @@ package com.importio.nitin.bakers;
 import android.os.AsyncTask;
 import android.os.Bundle;
 import android.support.v7.app.AppCompatActivity;
+import android.support.v7.widget.GridLayoutManager;
+import android.support.v7.widget.LinearLayoutManager;
+import android.support.v7.widget.RecyclerView;
 import android.util.Log;
-import android.view.View;
-import android.widget.AdapterView;
-import android.widget.ListView;
 
 import com.importio.nitin.bakers.Adapter.HomeAdapter;
 import com.importio.nitin.bakers.Database.AppDatabase;
@@ -24,7 +24,8 @@ import java.util.List;
 public class Home extends AppCompatActivity {
     private AppDatabase mDb;
     private List<ReceipeEntry> mReceipeList;
-    private ListView mListView;
+    private RecyclerView mRecyclerView;
+    private HomeListClickListener mListener;
     private HomeAdapter mAdapter;
 
     @Override
@@ -34,14 +35,21 @@ public class Home extends AppCompatActivity {
 
         mDb = AppDatabase.getsInstance(this);
         mReceipeList = new ArrayList<>();
-        mListView = findViewById(R.id.receipe_lv);
+        mRecyclerView = findViewById(R.id.receipe_rv);
 
-        mListView.setOnItemClickListener(new AdapterView.OnItemClickListener() {
+        boolean isPhone = getResources().getBoolean(R.bool.is_phone);
+        if (isPhone) {
+            mRecyclerView.setLayoutManager(new LinearLayoutManager(this));
+        } else {
+            mRecyclerView.setLayoutManager(new GridLayoutManager(this, 2));
+        }
+
+        mListener = new HomeListClickListener() {
             @Override
-            public void onItemClick(AdapterView<?> parent, View view, int position, long id) {
+            public void onClickListItem(int position) {
                 Log.d("Nitin", (position + 1) + " clicked");
             }
-        });
+        };
 
         AppExecutors.getInstance().getDiskIO().execute(new Runnable() {
             @Override
@@ -68,8 +76,8 @@ public class Home extends AppCompatActivity {
                 runOnUiThread(new Runnable() {
                     @Override
                     public void run() {
-                        mAdapter = new HomeAdapter(getApplicationContext(), mReceipeList);
-                        mListView.setAdapter(mAdapter);
+                        mAdapter = new HomeAdapter(getApplicationContext(), mReceipeList, mListener);
+                        mRecyclerView.setAdapter(mAdapter);
                     }
                 });
             }
@@ -92,8 +100,8 @@ public class Home extends AppCompatActivity {
                 runOnUiThread(new Runnable() {
                     @Override
                     public void run() {
-                        mAdapter = new HomeAdapter(getApplicationContext(), mReceipeList);
-                        mListView.setAdapter(mAdapter);
+                        mAdapter = new HomeAdapter(getApplicationContext(), mReceipeList, mListener);
+                        mRecyclerView.setAdapter(mAdapter);
                     }
                 });
             }
