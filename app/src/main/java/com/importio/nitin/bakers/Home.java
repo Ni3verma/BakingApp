@@ -4,7 +4,11 @@ import android.os.AsyncTask;
 import android.os.Bundle;
 import android.support.v7.app.AppCompatActivity;
 import android.util.Log;
+import android.view.View;
+import android.widget.AdapterView;
+import android.widget.ListView;
 
+import com.importio.nitin.bakers.Adapter.HomeAdapter;
 import com.importio.nitin.bakers.Database.AppDatabase;
 import com.importio.nitin.bakers.Database.IngredientEntry;
 import com.importio.nitin.bakers.Database.ReceipeEntry;
@@ -14,10 +18,14 @@ import org.json.JSONArray;
 import org.json.JSONException;
 import org.json.JSONObject;
 
+import java.util.ArrayList;
 import java.util.List;
 
 public class Home extends AppCompatActivity {
-    AppDatabase mDb;
+    private AppDatabase mDb;
+    private List<ReceipeEntry> mReceipeList;
+    private ListView mListView;
+    private HomeAdapter mAdapter;
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
@@ -25,6 +33,16 @@ public class Home extends AppCompatActivity {
         setContentView(R.layout.activity_home);
 
         mDb = AppDatabase.getsInstance(this);
+        mReceipeList = new ArrayList<>();
+        mListView = findViewById(R.id.receipe_lv);
+
+        mListView.setOnItemClickListener(new AdapterView.OnItemClickListener() {
+            @Override
+            public void onItemClick(AdapterView<?> parent, View view, int position, long id) {
+                Log.d("Nitin", (position + 1) + " clicked");
+            }
+        });
+
         AppExecutors.getInstance().getDiskIO().execute(new Runnable() {
             @Override
             public void run() {
@@ -34,15 +52,29 @@ public class Home extends AppCompatActivity {
                     getReceipeData();
                 } else {   //we already have data in db,so simply get data from db and show it
                     Log.d("Nitin", receipeList.size() + " receipes found in db");
-
-                }
-                List<StepEntry> steps = mDb.StepDao().getAllSteps();
-                for (StepEntry s : steps) {
-                    Log.d("Nitin", s.toString());
+                    showReceipes();
                 }
 
             }
         });
+
+    }
+
+    private void showReceipes() {
+        AppExecutors.getInstance().getDiskIO().execute(new Runnable() {
+            @Override
+            public void run() {
+                mReceipeList = mDb.ReceipeDao().getAllReceipe();
+                runOnUiThread(new Runnable() {
+                    @Override
+                    public void run() {
+                        mAdapter = new HomeAdapter(getApplicationContext(), mReceipeList);
+                        mListView.setAdapter(mAdapter);
+                    }
+                });
+            }
+        });
+
 
     }
 
@@ -56,6 +88,14 @@ public class Home extends AppCompatActivity {
             @Override
             public void run() {
                 mDb.ReceipeDao().insertReceipe(receipe);
+                mReceipeList.add(receipe);
+                runOnUiThread(new Runnable() {
+                    @Override
+                    public void run() {
+                        mAdapter = new HomeAdapter(getApplicationContext(), mReceipeList);
+                        mListView.setAdapter(mAdapter);
+                    }
+                });
             }
         });
     }

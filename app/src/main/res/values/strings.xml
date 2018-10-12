@@ -1,3 +1,4 @@
 <resources>
     <string name="app_name">Bakers</string>
+    <string name="receipe_image_cd">Receipe image</string>
 </resources>
