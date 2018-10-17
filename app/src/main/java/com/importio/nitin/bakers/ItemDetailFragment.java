@@ -60,9 +60,9 @@ public class ItemDetailFragment extends Fragment {
                              Bundle savedInstanceState) {
         View rootView = inflater.inflate(R.layout.item_detail, container, false);
 
-        // Show the dummy content as text in a TextView.
         if (mStep != null) {
-            ((TextView) rootView.findViewById(R.id.description)).setText(mStep.getDesc());
+            ((TextView) rootView.findViewById(R.id.description)).setText(
+                    String.format("%s\n%s", mStep.getShortDesc(), mStep.getDesc()));
         }
 
         return rootView;

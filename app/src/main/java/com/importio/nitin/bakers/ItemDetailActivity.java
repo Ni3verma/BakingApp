@@ -5,6 +5,12 @@ import android.os.Bundle;
 import android.support.v7.app.ActionBar;
 import android.support.v7.app.AppCompatActivity;
 import android.view.MenuItem;
+import android.view.View;
+import android.widget.Toast;
+
+import com.importio.nitin.bakers.Database.AppDatabase;
+
+import java.util.List;
 
 /**
  * An activity representing a single Item detail screen. This
@@ -13,6 +19,10 @@ import android.view.MenuItem;
  * in a {@link ItemListActivity}.
  */
 public class ItemDetailActivity extends AppCompatActivity {
+    private static int id;
+    private static int min;
+    private static int max;
+    private static int receipeId;
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
@@ -34,18 +44,31 @@ public class ItemDetailActivity extends AppCompatActivity {
         //
         // http://developer.android.com/guide/components/fragments.html
         //
+        id = getIntent().getIntExtra(ItemDetailFragment.ARG_ITEM_ID, -1);
+        getReceipeId(id);
+
         if (savedInstanceState == null) {
             // Create the detail fragment and add it to the activity
             // using a fragment transaction.
             Bundle arguments = new Bundle();
-            arguments.putInt(ItemDetailFragment.ARG_ITEM_ID,
-                    getIntent().getIntExtra(ItemDetailFragment.ARG_ITEM_ID, -1));
+            arguments.putInt(ItemDetailFragment.ARG_ITEM_ID, id);
             ItemDetailFragment fragment = new ItemDetailFragment();
             fragment.setArguments(arguments);
             getSupportFragmentManager().beginTransaction()
                     .add(R.id.item_detail_container, fragment)
                     .commit();
         }
+
+    }
+
+    private void navigateStep(int id) {
+        Bundle arguments = new Bundle();
+        arguments.putInt(ItemDetailFragment.ARG_ITEM_ID, id);
+        ItemDetailFragment fragment = new ItemDetailFragment();
+        fragment.setArguments(arguments);
+        getSupportFragmentManager().beginTransaction()
+                .replace(R.id.item_detail_container, fragment)
+                .commit();
     }
 
     @Override
@@ -62,5 +85,49 @@ public class ItemDetailActivity extends AppCompatActivity {
             return true;
         }
         return super.onOptionsItemSelected(item);
+    }
+
+    private void getReceipeId(final int stepId) {
+        AppExecutors.getInstance().getDiskIO().execute(new Runnable() {
+            @Override
+            public void run() {
+                receipeId = AppDatabase.getsInstance(ItemDetailActivity.this).StepDao().getReceipeId(stepId);
+                setLimit(receipeId);
+            }
+        });
+
+    }
+
+    private void setLimit(final int receipeId) {
+        AppExecutors.getInstance().getDiskIO().execute(new Runnable() {
+            @Override
+            public void run() {
+                List<Integer> range = AppDatabase.getsInstance(ItemDetailActivity.this).StepDao().getRangeOfIds(receipeId);
+                min = range.get(0);
+                max = range.get(range.size() - 1);
+
+            }
+        });
+    }
+
+    public void nextButtonClicked(View view) {
+        id++;
+        if (id <= max)
+            navigateStep(id);
+        else {
+            id--;
+            Toast.makeText(this, "Last Step", Toast.LENGTH_SHORT).show();
+        }
+
+    }
+
+    public void prevButtonClicked(View view) {
+        id--;
+        if (id >= min)
+            navigateStep(id);
+        else {
+            id++;
+            Toast.makeText(this, "First Step", Toast.LENGTH_SHORT).show();
+        }
     }
 }

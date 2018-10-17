@@ -19,4 +19,10 @@ public interface StepDao {
 
     @Query("select * from step where id=:id")
     StepEntry getStepById(int id);
+
+    @Query("select receipeId from step where id=:id")
+    int getReceipeId(int id);
+
+    @Query("select id from step where receipeId=:id")
+    List<Integer> getRangeOfIds(int id);
 }
