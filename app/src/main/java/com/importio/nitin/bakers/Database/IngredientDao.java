@@ -13,4 +13,7 @@ public interface IngredientDao {
 
     @Insert
     void insertIngredient(IngredientEntry entry);
+
+    @Query("select * from ingredient where receipeId = :id")
+    List<IngredientEntry> getIngredientsOfReceipe(int id);
 }

@@ -7,6 +7,7 @@ import android.support.annotation.NonNull;
 import android.support.design.widget.FloatingActionButton;
 import android.support.design.widget.Snackbar;
 import android.support.v7.app.AppCompatActivity;
+import android.support.v7.widget.LinearLayoutManager;
 import android.support.v7.widget.RecyclerView;
 import android.support.v7.widget.Toolbar;
 import android.view.LayoutInflater;
@@ -14,6 +15,8 @@ import android.view.View;
 import android.view.ViewGroup;
 import android.widget.TextView;
 
+import com.importio.nitin.bakers.Database.AppDatabase;
+import com.importio.nitin.bakers.Database.IngredientEntry;
 import com.importio.nitin.bakers.dummy.DummyContent;
 
 import java.util.List;
@@ -33,15 +36,25 @@ public class ItemListActivity extends AppCompatActivity {
      * device.
      */
     private boolean mTwoPane;
+    public static String RECEIPE_ID = "receipe_id";
+    TextView ingredientsTextView;
+    private int receipeId;
+    private AppDatabase mDb;
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
         setContentView(R.layout.activity_item_list);
 
+        mDb = AppDatabase.getsInstance(this);
+
         Toolbar toolbar = (Toolbar) findViewById(R.id.toolbar);
         setSupportActionBar(toolbar);
         toolbar.setTitle(getTitle());
+
+        ingredientsTextView = findViewById(R.id.ingredients_tv);
+        receipeId = getIntent().getIntExtra(RECEIPE_ID, 1);
+        getIngredients(receipeId);
 
         FloatingActionButton fab = (FloatingActionButton) findViewById(R.id.fab);
         fab.setOnClickListener(new View.OnClickListener() {
@@ -65,7 +78,29 @@ public class ItemListActivity extends AppCompatActivity {
         setupRecyclerView((RecyclerView) recyclerView);
     }
 
+    private void getIngredients(final int id) {
+        AppExecutors.getInstance().getDiskIO().execute(new Runnable() {
+            @Override
+            public void run() {
+                List<IngredientEntry> ingredients = mDb.IngredientDao().getIngredientsOfReceipe(id);
+                StringBuilder ingredientText = new StringBuilder();
+                for (IngredientEntry ingredient : ingredients) {
+                    ingredientText
+                            .append("-> ")
+                            .append(ingredient.getQty())
+                            .append(" ")
+                            .append(ingredient.getMeasure())
+                            .append(" ")
+                            .append(ingredient.getName());
+                    ingredientText.append("\n");
+                }
+                ingredientsTextView.setText(ingredientText.toString());
+            }
+        });
+    }
+
     private void setupRecyclerView(@NonNull RecyclerView recyclerView) {
+        recyclerView.setLayoutManager(new LinearLayoutManager(this));
         recyclerView.setAdapter(new SimpleItemRecyclerViewAdapter(this, DummyContent.ITEMS, mTwoPane));
     }
 

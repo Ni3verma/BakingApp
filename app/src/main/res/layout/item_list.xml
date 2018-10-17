@@ -18,11 +18,11 @@
 
     <TextView
         android:id="@+id/ingredients_tv"
-        android:layout_width="500dp"
+        android:layout_width="350dp"
         android:layout_height="wrap_content"
         android:layout_gravity="center"
         android:layout_marginTop="8dp"
-        android:gravity="center"
+        android:paddingStart="8dp"
         android:textColor="@android:color/black"
         android:textSize="14sp"
         tools:text="2 TBSP SUGAR\n2 TBSP SUGAR\n2 TBSP SUGAR\n2 TBSP SUGAR\n2 TBSP SUGAR\n" />

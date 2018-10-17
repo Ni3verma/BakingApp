@@ -1,5 +1,6 @@
 package com.importio.nitin.bakers;
 
+import android.content.Intent;
 import android.os.AsyncTask;
 import android.os.Bundle;
 import android.support.v7.app.AppCompatActivity;
@@ -48,6 +49,9 @@ public class Home extends AppCompatActivity {
             @Override
             public void onClickListItem(int position) {
                 Log.d("Nitin", (position + 1) + " clicked");
+                Intent intent = new Intent(Home.this, ItemListActivity.class);
+                intent.putExtra(ItemListActivity.RECEIPE_ID, position + 1);
+                startActivity(intent);
             }
         };
 
