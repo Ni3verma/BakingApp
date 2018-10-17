@@ -3,13 +3,9 @@ package com.importio.nitin.bakers;
 import android.content.Context;
 import android.content.Intent;
 import android.os.Bundle;
-import android.support.annotation.NonNull;
-import android.support.design.widget.FloatingActionButton;
-import android.support.design.widget.Snackbar;
 import android.support.v7.app.AppCompatActivity;
 import android.support.v7.widget.LinearLayoutManager;
 import android.support.v7.widget.RecyclerView;
-import android.support.v7.widget.Toolbar;
 import android.view.LayoutInflater;
 import android.view.View;
 import android.view.ViewGroup;
@@ -17,8 +13,9 @@ import android.widget.TextView;
 
 import com.importio.nitin.bakers.Database.AppDatabase;
 import com.importio.nitin.bakers.Database.IngredientEntry;
-import com.importio.nitin.bakers.dummy.DummyContent;
+import com.importio.nitin.bakers.Database.ShortStepEntry;
 
+import java.util.ArrayList;
 import java.util.List;
 
 /**
@@ -40,6 +37,8 @@ public class ItemListActivity extends AppCompatActivity {
     TextView ingredientsTextView;
     private int receipeId;
     private AppDatabase mDb;
+    RecyclerView mRecyclerView;
+    private List<ShortStepEntry> mSteps;
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
@@ -47,23 +46,12 @@ public class ItemListActivity extends AppCompatActivity {
         setContentView(R.layout.activity_item_list);
 
         mDb = AppDatabase.getsInstance(this);
-
-        Toolbar toolbar = (Toolbar) findViewById(R.id.toolbar);
-        setSupportActionBar(toolbar);
-        toolbar.setTitle(getTitle());
+        mSteps = new ArrayList<>();
 
         ingredientsTextView = findViewById(R.id.ingredients_tv);
         receipeId = getIntent().getIntExtra(RECEIPE_ID, 1);
+        getSteps(receipeId);
         getIngredients(receipeId);
-
-        FloatingActionButton fab = (FloatingActionButton) findViewById(R.id.fab);
-        fab.setOnClickListener(new View.OnClickListener() {
-            @Override
-            public void onClick(View view) {
-                Snackbar.make(view, "Replace with your own action", Snackbar.LENGTH_LONG)
-                        .setAction("Action", null).show();
-            }
-        });
 
         if (findViewById(R.id.item_detail_container) != null) {
             // The detail container view will be present only in the
@@ -73,9 +61,25 @@ public class ItemListActivity extends AppCompatActivity {
             mTwoPane = true;
         }
 
-        View recyclerView = findViewById(R.id.item_list);
-        assert recyclerView != null;
-        setupRecyclerView((RecyclerView) recyclerView);
+        mRecyclerView = findViewById(R.id.item_list);
+        assert mRecyclerView != null;
+        setupRecyclerView();
+    }
+
+    private void getSteps(final int id) {
+        AppExecutors.getInstance().getDiskIO().execute(new Runnable() {
+            @Override
+            public void run() {
+                mSteps = mDb.StepDao().getStepsOfReceipe(id);
+                runOnUiThread(new Runnable() {
+                    @Override
+                    public void run() {
+                        setupRecyclerView();
+                    }
+                });
+            }
+
+        });
     }
 
     private void getIngredients(final int id) {
@@ -99,24 +103,24 @@ public class ItemListActivity extends AppCompatActivity {
         });
     }
 
-    private void setupRecyclerView(@NonNull RecyclerView recyclerView) {
-        recyclerView.setLayoutManager(new LinearLayoutManager(this));
-        recyclerView.setAdapter(new SimpleItemRecyclerViewAdapter(this, DummyContent.ITEMS, mTwoPane));
+    private void setupRecyclerView() {
+        mRecyclerView.setLayoutManager(new LinearLayoutManager(this));
+        mRecyclerView.setAdapter(new SimpleItemRecyclerViewAdapter(this, mSteps, mTwoPane));
     }
 
     public static class SimpleItemRecyclerViewAdapter
             extends RecyclerView.Adapter<SimpleItemRecyclerViewAdapter.ViewHolder> {
 
         private final ItemListActivity mParentActivity;
-        private final List<DummyContent.DummyItem> mValues;
+        private final List<ShortStepEntry> mSteps;
         private final boolean mTwoPane;
         private final View.OnClickListener mOnClickListener = new View.OnClickListener() {
             @Override
             public void onClick(View view) {
-                DummyContent.DummyItem item = (DummyContent.DummyItem) view.getTag();
+                ShortStepEntry item = (ShortStepEntry) view.getTag();
                 if (mTwoPane) {
                     Bundle arguments = new Bundle();
-                    arguments.putString(ItemDetailFragment.ARG_ITEM_ID, item.id);
+                    arguments.putInt(ItemDetailFragment.ARG_ITEM_ID, item.getId());
                     ItemDetailFragment fragment = new ItemDetailFragment();
                     fragment.setArguments(arguments);
                     mParentActivity.getSupportFragmentManager().beginTransaction()
@@ -125,7 +129,7 @@ public class ItemListActivity extends AppCompatActivity {
                 } else {
                     Context context = view.getContext();
                     Intent intent = new Intent(context, ItemDetailActivity.class);
-                    intent.putExtra(ItemDetailFragment.ARG_ITEM_ID, item.id);
+                    intent.putExtra(ItemDetailFragment.ARG_ITEM_ID, item.getId());
 
                     context.startActivity(intent);
                 }
@@ -133,9 +137,9 @@ public class ItemListActivity extends AppCompatActivity {
         };
 
         SimpleItemRecyclerViewAdapter(ItemListActivity parent,
-                                      List<DummyContent.DummyItem> items,
+                                      List<ShortStepEntry> steps,
                                       boolean twoPane) {
-            mValues = items;
+            mSteps = steps;
             mParentActivity = parent;
             mTwoPane = twoPane;
         }
@@ -149,16 +153,16 @@ public class ItemListActivity extends AppCompatActivity {
 
         @Override
         public void onBindViewHolder(final ViewHolder holder, int position) {
-            holder.mIdView.setText(mValues.get(position).id);
-            holder.mContentView.setText(mValues.get(position).content);
+            holder.mIdView.setText("" + (position + 1));
+            holder.mContentView.setText(mSteps.get(position).getShortDesc());
 
-            holder.itemView.setTag(mValues.get(position));
+            holder.itemView.setTag(mSteps.get(position));
             holder.itemView.setOnClickListener(mOnClickListener);
         }
 
         @Override
         public int getItemCount() {
-            return mValues.size();
+            return mSteps.size();
         }
 
         class ViewHolder extends RecyclerView.ViewHolder {
@@ -167,8 +171,8 @@ public class ItemListActivity extends AppCompatActivity {
 
             ViewHolder(View view) {
                 super(view);
-                mIdView = (TextView) view.findViewById(R.id.id_text);
-                mContentView = (TextView) view.findViewById(R.id.content);
+                mIdView = view.findViewById(R.id.id_text);
+                mContentView = view.findViewById(R.id.content);
             }
         }
     }

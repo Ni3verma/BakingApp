@@ -13,4 +13,10 @@ public interface StepDao {
 
     @Insert
     void insertStep(StepEntry step);
+
+    @Query("select id,shortDesc from step where receipeId= :recId")
+    List<ShortStepEntry> getStepsOfReceipe(int recId);
+
+    @Query("select * from step where id=:id")
+    StepEntry getStepById(int id);
 }
