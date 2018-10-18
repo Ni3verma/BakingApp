@@ -3,6 +3,8 @@ package com.importio.nitin.bakers;
 import android.net.Uri;
 import android.os.Bundle;
 import android.support.v4.app.Fragment;
+import android.support.v4.media.session.MediaSessionCompat;
+import android.support.v4.media.session.PlaybackStateCompat;
 import android.util.Log;
 import android.view.LayoutInflater;
 import android.view.View;
@@ -44,6 +46,8 @@ public class ItemDetailFragment extends Fragment implements View.OnClickListener
     private AppDatabase mDb;
 
     private SimpleExoPlayer mExoPlayer;
+    private MediaSessionCompat mMediaSession;
+    private PlaybackStateCompat.Builder mStateBuilder;
 
     /**
      * Mandatory empty constructor for the fragment manager to instantiate the
@@ -77,6 +81,7 @@ public class ItemDetailFragment extends Fragment implements View.OnClickListener
     public void onDestroyView() {
         super.onDestroyView();
         releasePlayer();
+        mMediaSession.setActive(false);
     }
 
     private void releasePlayer() {
@@ -107,6 +112,8 @@ public class ItemDetailFragment extends Fragment implements View.OnClickListener
             mExoPlayer.prepare(mediaSource);
             mExoPlayer.setPlayWhenReady(true);
             mExoPlayer.addListener(this);
+
+            initializeMediaSession();
         }
 
         return rootView;
@@ -136,8 +143,10 @@ public class ItemDetailFragment extends Fragment implements View.OnClickListener
     public void onPlayerStateChanged(boolean playWhenReady, int playbackState) {
         if (playbackState == ExoPlayer.STATE_READY && playWhenReady) {
             Log.d("Nitin", "onPlayerStateChanged: PLAYING");
+            mStateBuilder.setState(PlaybackStateCompat.STATE_PLAYING, mExoPlayer.getCurrentPosition(), 1f);
         } else if (playbackState == ExoPlayer.STATE_READY) {
             Log.d("Nitin", "onPlayerStateChanged: PAUSED");
+            mStateBuilder.setState(PlaybackStateCompat.STATE_PAUSED, mExoPlayer.getCurrentPosition(), 1f);
         }
     }
 
@@ -149,5 +158,38 @@ public class ItemDetailFragment extends Fragment implements View.OnClickListener
     @Override
     public void onPositionDiscontinuity() {
 
+    }
+
+    private void initializeMediaSession() {
+        mMediaSession = new MediaSessionCompat(getContext(), "bakers tag");
+
+        mMediaSession.setFlags(MediaSessionCompat.FLAG_HANDLES_MEDIA_BUTTONS | MediaSessionCompat.FLAG_HANDLES_TRANSPORT_CONTROLS);
+
+        mMediaSession.setMediaButtonReceiver(null);
+
+        mStateBuilder = new PlaybackStateCompat.Builder().setActions(PlaybackStateCompat.ACTION_PLAY | PlaybackStateCompat.ACTION_PAUSE | PlaybackStateCompat.ACTION_SKIP_TO_PREVIOUS | PlaybackStateCompat.ACTION_PLAY_PAUSE);
+
+        mMediaSession.setPlaybackState(mStateBuilder.build());
+
+        mMediaSession.setCallback(new MySessionCallback());
+
+        mMediaSession.setActive(true);
+    }
+
+    private class MySessionCallback extends MediaSessionCompat.Callback {
+        @Override
+        public void onPlay() {
+            mExoPlayer.setPlayWhenReady(true);
+        }
+
+        @Override
+        public void onPause() {
+            mExoPlayer.setPlayWhenReady(false);
+        }
+
+        @Override
+        public void onSkipToPrevious() {
+            mExoPlayer.seekTo(0);
+        }
     }
 }
