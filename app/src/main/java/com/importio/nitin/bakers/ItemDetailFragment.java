@@ -1,8 +1,16 @@
 package com.importio.nitin.bakers;
 
+import android.app.NotificationChannel;
+import android.app.NotificationManager;
+import android.content.BroadcastReceiver;
+import android.content.Context;
+import android.content.Intent;
 import android.net.Uri;
+import android.os.Build;
 import android.os.Bundle;
 import android.support.v4.app.Fragment;
+import android.support.v4.app.NotificationCompat;
+import android.support.v4.media.session.MediaButtonReceiver;
 import android.support.v4.media.session.MediaSessionCompat;
 import android.support.v4.media.session.PlaybackStateCompat;
 import android.util.Log;
@@ -29,6 +37,8 @@ import com.google.android.exoplayer2.util.Util;
 import com.importio.nitin.bakers.Database.AppDatabase;
 import com.importio.nitin.bakers.Database.StepEntry;
 
+import static android.content.Context.NOTIFICATION_SERVICE;
+
 /**
  * A fragment representing a single Item detail screen.
  * This fragment is either contained in a {@link ItemListActivity}
@@ -46,8 +56,10 @@ public class ItemDetailFragment extends Fragment implements View.OnClickListener
     private AppDatabase mDb;
 
     private SimpleExoPlayer mExoPlayer;
-    private MediaSessionCompat mMediaSession;
+    private static MediaSessionCompat mMediaSession;
     private PlaybackStateCompat.Builder mStateBuilder;
+
+    private NotificationManager mNotificationManager;
 
     /**
      * Mandatory empty constructor for the fragment manager to instantiate the
@@ -85,6 +97,7 @@ public class ItemDetailFragment extends Fragment implements View.OnClickListener
     }
 
     private void releasePlayer() {
+        mNotificationManager.cancelAll();
         mExoPlayer.stop();
         mExoPlayer.release();
         mExoPlayer = null;
@@ -148,6 +161,10 @@ public class ItemDetailFragment extends Fragment implements View.OnClickListener
             Log.d("Nitin", "onPlayerStateChanged: PAUSED");
             mStateBuilder.setState(PlaybackStateCompat.STATE_PAUSED, mExoPlayer.getCurrentPosition(), 1f);
         }
+
+        mMediaSession.setPlaybackState(mStateBuilder.build());
+        showNotification(mStateBuilder.build());
+
     }
 
     @Override
@@ -169,11 +186,46 @@ public class ItemDetailFragment extends Fragment implements View.OnClickListener
 
         mStateBuilder = new PlaybackStateCompat.Builder().setActions(PlaybackStateCompat.ACTION_PLAY | PlaybackStateCompat.ACTION_PAUSE | PlaybackStateCompat.ACTION_SKIP_TO_PREVIOUS | PlaybackStateCompat.ACTION_PLAY_PAUSE);
 
-        mMediaSession.setPlaybackState(mStateBuilder.build());
-
         mMediaSession.setCallback(new MySessionCallback());
 
         mMediaSession.setActive(true);
+    }
+
+    private void showNotification(PlaybackStateCompat state) {
+        int icon;
+        String play_pause;
+
+        if (state.getState() == PlaybackStateCompat.STATE_PLAYING) {
+            icon = R.drawable.exo_controls_pause;
+            play_pause = "pause";
+        } else {
+            icon = R.drawable.exo_controls_play;
+            play_pause = "play";
+        }
+
+        String CHANNEL_NAME = "bakers channel";
+        int NOTIFICATION_ID = 23;
+        String CHANNEL_NOTIFICATION_ID = "channel id";
+        mNotificationManager = (NotificationManager) getContext().getSystemService(NOTIFICATION_SERVICE);
+
+        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O) {
+            NotificationChannel mChannel = new NotificationChannel(CHANNEL_NOTIFICATION_ID, CHANNEL_NAME, NotificationManager.IMPORTANCE_DEFAULT);
+            mNotificationManager.createNotificationChannel(mChannel);
+        }
+        NotificationCompat.Builder builder = new NotificationCompat.Builder(getContext(), CHANNEL_NOTIFICATION_ID);
+        NotificationCompat.Action playPauseAction = new NotificationCompat.Action(icon, play_pause, MediaButtonReceiver.buildMediaButtonPendingIntent(getContext(), PlaybackStateCompat.ACTION_PLAY_PAUSE));
+
+//TODO:change small icon
+        builder.setContentTitle("Step")
+                .setContentText(mStep.getShortDesc())
+                .setSmallIcon(R.drawable.ic_launcher_background)
+                .setVisibility(NotificationCompat.VISIBILITY_PUBLIC)
+                .addAction(playPauseAction)
+                .setTicker("Bakers")
+                .setStyle(new android.support.v4.media.app.NotificationCompat.MediaStyle().setMediaSession(mMediaSession.getSessionToken()).setShowActionsInCompactView(0));
+
+        mNotificationManager = (NotificationManager) getContext().getSystemService(NOTIFICATION_SERVICE);
+        mNotificationManager.notify(NOTIFICATION_ID, builder.build());
     }
 
     private class MySessionCallback extends MediaSessionCompat.Callback {
@@ -190,6 +242,16 @@ public class ItemDetailFragment extends Fragment implements View.OnClickListener
         @Override
         public void onSkipToPrevious() {
             mExoPlayer.seekTo(0);
+        }
+    }
+
+    public static class MediaReceiver extends BroadcastReceiver {
+        public MediaReceiver() {
+        }
+
+        @Override
+        public void onReceive(Context context, Intent intent) {
+            MediaButtonReceiver.handleIntent(mMediaSession, intent);
         }
     }
 }
