@@ -209,7 +209,7 @@ public class ItemDetailFragment extends Fragment implements View.OnClickListener
         mNotificationManager = (NotificationManager) getContext().getSystemService(NOTIFICATION_SERVICE);
 
         if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O) {
-            NotificationChannel mChannel = new NotificationChannel(CHANNEL_NOTIFICATION_ID, CHANNEL_NAME, NotificationManager.IMPORTANCE_DEFAULT);
+            NotificationChannel mChannel = new NotificationChannel(CHANNEL_NOTIFICATION_ID, CHANNEL_NAME, NotificationManager.IMPORTANCE_LOW);
             mNotificationManager.createNotificationChannel(mChannel);
         }
         NotificationCompat.Builder builder = new NotificationCompat.Builder(getContext(), CHANNEL_NOTIFICATION_ID);

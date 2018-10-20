@@ -21,6 +21,7 @@
         android:onClick="prevButtonClicked"
         android:src="@drawable/arrow_left"
         app:layout_constraintBottom_toBottomOf="parent"
+        android:contentDescription="@string/prev_step_button_cd"
         app:layout_constraintLeft_toLeftOf="parent" />
 
     <TextView
@@ -29,7 +30,7 @@
         android:layout_marginStart="8dp"
         android:layout_marginEnd="8dp"
         android:layout_marginBottom="8dp"
-        android:text="Navigate"
+        android:text="@string/navigate"
         android:textSize="26sp"
         app:layout_constraintBottom_toBottomOf="@+id/prev_step"
         app:layout_constraintEnd_toStartOf="@+id/next_step"
@@ -44,5 +45,6 @@
         android:onClick="nextButtonClicked"
         android:src="@drawable/arrow_right"
         app:layout_constraintBottom_toBottomOf="parent"
+        android:contentDescription="@string/next_step_button_cd"
         app:layout_constraintRight_toRightOf="parent" />
 </android.support.constraint.ConstraintLayout>
