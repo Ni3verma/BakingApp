@@ -20,12 +20,17 @@ import java.util.List;
 public class ReceipeIngredientWidget extends AppWidgetProvider {
     private static AppDatabase mDb;
     private static RemoteViews views;
+    private static AppWidgetManager widgetManager;
+    private static int widgetId;
 
-    static void updateAppWidget(final Context context, AppWidgetManager appWidgetManager,
-                                int appWidgetId, final int receipeId) {
+    static void updateAppWidget(Context context, AppWidgetManager appWidgetManager,
+                                int appWidgetId, int receipeId) {
         Log.d("Nitin", "onUpdateAppWidget");
 
         mDb = AppDatabase.getsInstance(context);
+        widgetManager = appWidgetManager;
+        widgetId = appWidgetId;
+
 
         Intent intent = new Intent(context, Home.class);
         PendingIntent pendingIntent = PendingIntent.getActivity(context, 0, intent, 0);
@@ -88,8 +93,8 @@ public class ReceipeIngredientWidget extends AppWidgetProvider {
 
         @Override
         protected void onPostExecute(String s) {
-            Log.d("Nitin", "ingr=" + s);
             views.setTextViewText(R.id.appwidget_text, s);
+            widgetManager.updateAppWidget(widgetId, views);
         }
     }
 }
