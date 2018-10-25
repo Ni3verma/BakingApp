@@ -55,11 +55,15 @@ public class ItemDetailFragment extends Fragment implements View.OnClickListener
     private StepEntry mStep;
     private AppDatabase mDb;
 
+    private SimpleExoPlayerView mPlayerView;
     private SimpleExoPlayer mExoPlayer;
     private static MediaSessionCompat mMediaSession;
     private PlaybackStateCompat.Builder mStateBuilder;
 
     private NotificationManager mNotificationManager;
+
+    private long currentPosition;
+    private boolean playWhenReady;
 
     /**
      * Mandatory empty constructor for the fragment manager to instantiate the
@@ -89,18 +93,31 @@ public class ItemDetailFragment extends Fragment implements View.OnClickListener
         }
     }
 
-    @Override
-    public void onDestroyView() {
-        super.onDestroyView();
-        releasePlayer();
+    private void releasePlayer() {
+        if (mNotificationManager != null)
+            mNotificationManager.cancelAll();
+        if (mExoPlayer != null) {
+        mExoPlayer.stop();
+        mExoPlayer.release();
+            mExoPlayer = null;
+        }
         mMediaSession.setActive(false);
     }
 
-    private void releasePlayer() {
-        mNotificationManager.cancelAll();
-        mExoPlayer.stop();
-        mExoPlayer.release();
-        mExoPlayer = null;
+    @Override
+    public void onResume() {
+        super.onResume();
+        if (Util.SDK_INT <= 23 || mExoPlayer == null) {
+            initializePlayer();
+        }
+    }
+
+    @Override
+    public void onStart() {
+        super.onStart();
+        if (Util.SDK_INT > 23) {
+            initializePlayer();
+        }
     }
 
     @Override
@@ -111,29 +128,57 @@ public class ItemDetailFragment extends Fragment implements View.OnClickListener
         if (mStep != null) {
             ((TextView) rootView.findViewById(R.id.description)).setText(
                     String.format("%s\n\n%s", mStep.getShortDesc(), mStep.getDesc()));
-            SimpleExoPlayerView mPlayerView = rootView.findViewById(R.id.exo_player_view);
-            mExoPlayer = ExoPlayerFactory.newSimpleInstance(getContext(), new DefaultTrackSelector(), new DefaultLoadControl());
-            mPlayerView.setPlayer(mExoPlayer);
-            String userAgent = Util.getUserAgent(getContext(), "bakers");
-
-            Uri mediaUri = (!mStep.getVideoURL().equals("")) ? Uri.parse(mStep.getVideoURL()) : Uri.parse(mStep.getThumbnailURL());
-            MediaSource mediaSource = new ExtractorMediaSource(
-                    mediaUri,
-                    new DefaultDataSourceFactory(getContext(), userAgent),
-                    new DefaultExtractorsFactory(), null, null);
-
-            mExoPlayer.prepare(mediaSource);
-            mExoPlayer.setPlayWhenReady(true);
-            mExoPlayer.addListener(this);
-
-            initializeMediaSession();
+            mPlayerView = rootView.findViewById(R.id.exo_player_view);
         }
 
         return rootView;
     }
 
+    private void initializePlayer() {
+        mExoPlayer = ExoPlayerFactory.newSimpleInstance(getContext(), new DefaultTrackSelector(), new DefaultLoadControl());
+        mPlayerView.setPlayer(mExoPlayer);
+        String userAgent = Util.getUserAgent(getContext(), "bakers");
+
+        Uri mediaUri = (!mStep.getVideoURL().equals("")) ? Uri.parse(mStep.getVideoURL()) : Uri.parse(mStep.getThumbnailURL());
+        MediaSource mediaSource = new ExtractorMediaSource(
+                mediaUri,
+                new DefaultDataSourceFactory(getContext(), userAgent),
+                new DefaultExtractorsFactory(), null, null);
+
+        mExoPlayer.prepare(mediaSource);
+        mExoPlayer.setPlayWhenReady(true);
+        mExoPlayer.addListener(this);
+
+        initializeMediaSession();
+        if (currentPosition > 0) {
+            mExoPlayer.seekTo(currentPosition);
+            mExoPlayer.setPlayWhenReady(playWhenReady);
+        }
+    }
+
     @Override
     public void onClick(View v) {
+
+    }
+
+    @Override
+    public void onStop() {
+        super.onStop();
+        if (Util.SDK_INT > 23) {
+            currentPosition = mExoPlayer.getCurrentPosition();
+            playWhenReady = mExoPlayer.getPlayWhenReady();
+            releasePlayer();
+        }
+    }
+
+    @Override
+    public void onPause() {
+        super.onPause();
+        if (Util.SDK_INT <= 23) {
+            currentPosition = mExoPlayer.getCurrentPosition();
+            playWhenReady = mExoPlayer.getPlayWhenReady();
+            releasePlayer();
+        }
 
     }
 
