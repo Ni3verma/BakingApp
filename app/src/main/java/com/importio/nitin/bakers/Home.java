@@ -22,10 +22,14 @@ import org.json.JSONObject;
 import java.util.ArrayList;
 import java.util.List;
 
+import butterknife.BindView;
+import butterknife.ButterKnife;
+
 public class Home extends AppCompatActivity {
     private AppDatabase mDb;
     private List<ReceipeEntry> mReceipeList;
-    private RecyclerView mRecyclerView;
+    @BindView(R.id.receipe_rv)
+    RecyclerView mRecyclerView;
     private HomeListClickListener mListener;
     private HomeAdapter mAdapter;
 
@@ -33,6 +37,7 @@ public class Home extends AppCompatActivity {
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
         setContentView(R.layout.activity_home);
+        ButterKnife.bind(this);
 
         mDb = AppDatabase.getsInstance(this);
         mReceipeList = new ArrayList<>();

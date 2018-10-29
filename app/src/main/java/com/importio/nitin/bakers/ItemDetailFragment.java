@@ -8,6 +8,7 @@ import android.content.Intent;
 import android.net.Uri;
 import android.os.Build;
 import android.os.Bundle;
+import android.support.annotation.NonNull;
 import android.support.v4.app.Fragment;
 import android.support.v4.app.NotificationCompat;
 import android.support.v4.media.session.MediaButtonReceiver;
@@ -65,6 +66,10 @@ public class ItemDetailFragment extends Fragment implements View.OnClickListener
     private long currentPosition;
     private boolean playWhenReady;
 
+    public static final String POSITION_KEY = "position";
+    public static final String PLAY_WHEN_READY_KEY = "playwhenready";
+
+
     /**
      * Mandatory empty constructor for the fragment manager to instantiate the
      * fragment (e.g. upon screen orientation changes).
@@ -104,21 +109,6 @@ public class ItemDetailFragment extends Fragment implements View.OnClickListener
         mMediaSession.setActive(false);
     }
 
-    @Override
-    public void onResume() {
-        super.onResume();
-        if (Util.SDK_INT <= 23 || mExoPlayer == null) {
-            initializePlayer();
-        }
-    }
-
-    @Override
-    public void onStart() {
-        super.onStart();
-        if (Util.SDK_INT > 23) {
-            initializePlayer();
-        }
-    }
 
     @Override
     public View onCreateView(LayoutInflater inflater, ViewGroup container,
@@ -131,6 +121,15 @@ public class ItemDetailFragment extends Fragment implements View.OnClickListener
             mPlayerView = rootView.findViewById(R.id.exo_player_view);
         }
 
+        //default values
+        currentPosition = 0;
+        playWhenReady = true;
+
+        if (savedInstanceState != null) {
+            currentPosition = savedInstanceState.getLong(POSITION_KEY, 0);
+            playWhenReady = savedInstanceState.getBoolean(PLAY_WHEN_READY_KEY, true);
+        }
+        initializePlayer();
         return rootView;
     }
 
@@ -145,15 +144,12 @@ public class ItemDetailFragment extends Fragment implements View.OnClickListener
                 new DefaultDataSourceFactory(getContext(), userAgent),
                 new DefaultExtractorsFactory(), null, null);
 
+        mExoPlayer.seekTo(currentPosition);
         mExoPlayer.prepare(mediaSource);
-        mExoPlayer.setPlayWhenReady(true);
+        mExoPlayer.setPlayWhenReady(playWhenReady);
         mExoPlayer.addListener(this);
 
         initializeMediaSession();
-        if (currentPosition > 0) {
-            mExoPlayer.seekTo(currentPosition);
-            mExoPlayer.setPlayWhenReady(playWhenReady);
-        }
     }
 
     @Override
@@ -162,11 +158,16 @@ public class ItemDetailFragment extends Fragment implements View.OnClickListener
     }
 
     @Override
+    public void onSaveInstanceState(@NonNull Bundle outState) {
+        super.onSaveInstanceState(outState);
+        outState.putLong(POSITION_KEY, mExoPlayer.getCurrentPosition());
+        outState.putBoolean(PLAY_WHEN_READY_KEY, mExoPlayer.getPlayWhenReady());
+    }
+
+    @Override
     public void onStop() {
         super.onStop();
         if (Util.SDK_INT > 23) {
-            currentPosition = mExoPlayer.getCurrentPosition();
-            playWhenReady = mExoPlayer.getPlayWhenReady();
             releasePlayer();
         }
     }
@@ -175,8 +176,6 @@ public class ItemDetailFragment extends Fragment implements View.OnClickListener
     public void onPause() {
         super.onPause();
         if (Util.SDK_INT <= 23) {
-            currentPosition = mExoPlayer.getCurrentPosition();
-            playWhenReady = mExoPlayer.getPlayWhenReady();
             releasePlayer();
         }
 
